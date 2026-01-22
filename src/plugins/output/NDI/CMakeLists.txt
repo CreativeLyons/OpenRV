@@ -6,6 +6,12 @@
 
 INCLUDE(cxx_defaults)
 
+# Check if NDI plugin is enabled
+IF(NOT RV_BUILD_NDI)
+  MESSAGE(STATUS "NDI plugin is disabled (RV_BUILD_NDI=OFF)")
+  RETURN()
+ENDIF()
+
 SET(_target
     "NDI"
 )

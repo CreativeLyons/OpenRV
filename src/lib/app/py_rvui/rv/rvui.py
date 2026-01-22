@@ -7,35 +7,51 @@ import rv.commands
 import rv.rvtypes
 
 
-def modeStatus(mode):
+def modeStatus(mode=None):
+    if mode is None:
+        return False
     return mode._active
 
 
-def modeDrawOnEmpty(mode):
+def modeDrawOnEmpty(mode=None):
+    if mode is None:
+        return False
     return mode._drawOnEmpty
 
 
-def modeDrawOnPresentation(mode):
+def modeDrawOnPresentation(mode=None):
+    if mode is None:
+        return False
     return mode._drawOnPresentation
 
 
-def modeName(mode):
+def modeName(mode=None):
+    if mode is None:
+        return ""
     return mode._modeName
 
 
-def modeActive(mode):
+def modeActive(mode=None):
+    if mode is None:
+        return False
     return mode._active
 
 
-def modeActivate(mode):
+def modeActivate(mode=None):
+    if mode is None:
+        return
     mode.activate()
 
 
-def modeDeactivate(mode):
+def modeDeactivate(mode=None):
+    if mode is None:
+        return
     mode.deactivate()
 
 
-def modeRender(mode, event):
+def modeRender(mode=None, event=None):
+    if mode is None:
+        return
     mode.render(event)
 
 

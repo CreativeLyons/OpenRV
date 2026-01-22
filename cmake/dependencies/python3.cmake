@@ -462,35 +462,44 @@ SET(${_pyside_target}-build-flag
     ${_install_dir}/${_pyside_target}-build-flag
 )
 
-IF(RV_VFX_PLATFORM STREQUAL CY2023)
-  ADD_CUSTOM_COMMAND(
-    COMMENT "Building PySide2 using ${_pyside_make_command_script}"
-    OUTPUT ${${_pyside_target}-build-flag}
-    # First PySide build script on Windows which doesn't respect '--debug' option
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/src/build/patch_PySide2/windows_desktop.py
-            ${rv_deps_pyside2_SOURCE_DIR}/build_scripts/platforms/windows_desktop.py
-    COMMAND ${_pyside_make_command} --prepare --build
-    COMMAND cmake -E touch ${${_pyside_target}-build-flag}
-    DEPENDS ${_python3_target} ${_pyside_make_command_script} ${${_python3_target}-requirements-flag} ${${_python3_target}-test-flag}
-    USES_TERMINAL
-  )
+# Initialize _build_flag_depends as empty - will be set if PySide is enabled
+SET(_build_flag_depends
+    ""
+)
 
-  SET(_build_flag_depends
-      ${${_pyside_target}-build-flag}
-  )
-ELSEIF(RV_VFX_PLATFORM STRGREATER_EQUAL CY2024)
-  ADD_CUSTOM_COMMAND(
-    COMMENT "Building PySide6 using ${_pyside_make_command_script}"
-    OUTPUT ${${_pyside_target}-build-flag}
-    COMMAND ${_pyside_make_command} --prepare --build
-    COMMAND cmake -E touch ${${_pyside_target}-build-flag}
-    DEPENDS ${_python3_target} ${_pyside_make_command_script} ${${_python3_target}-requirements-flag} ${${_python3_target}-test-flag}
-    USES_TERMINAL
-  )
+IF(RV_BUILD_PYSIDE)
+  IF(RV_VFX_PLATFORM STREQUAL CY2023)
+    ADD_CUSTOM_COMMAND(
+      COMMENT "Building PySide2 using ${_pyside_make_command_script}"
+      OUTPUT ${${_pyside_target}-build-flag}
+      # First PySide build script on Windows which doesn't respect '--debug' option
+      COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/src/build/patch_PySide2/windows_desktop.py
+              ${rv_deps_pyside2_SOURCE_DIR}/build_scripts/platforms/windows_desktop.py
+      COMMAND ${_pyside_make_command} --prepare --build
+      COMMAND cmake -E touch ${${_pyside_target}-build-flag}
+      DEPENDS ${_python3_target} ${_pyside_make_command_script} ${${_python3_target}-requirements-flag} ${${_python3_target}-test-flag}
+      USES_TERMINAL
+    )
 
-  SET(_build_flag_depends
-      ${${_pyside_target}-build-flag}
-  )
+    SET(_build_flag_depends
+        ${${_pyside_target}-build-flag}
+    )
+  ELSEIF(RV_VFX_PLATFORM STRGREATER_EQUAL CY2024)
+    ADD_CUSTOM_COMMAND(
+      COMMENT "Building PySide6 using ${_pyside_make_command_script}"
+      OUTPUT ${${_pyside_target}-build-flag}
+      COMMAND ${_pyside_make_command} --prepare --build
+      COMMAND cmake -E touch ${${_pyside_target}-build-flag}
+      DEPENDS ${_python3_target} ${_pyside_make_command_script} ${${_python3_target}-requirements-flag} ${${_python3_target}-test-flag}
+      USES_TERMINAL
+    )
+
+    SET(_build_flag_depends
+        ${${_pyside_target}-build-flag}
+    )
+  ENDIF()
+ELSE()
+  MESSAGE(STATUS "PySide build is disabled (RV_BUILD_PYSIDE=OFF)")
 ENDIF()
 
 IF(RV_TARGET_WINDOWS)

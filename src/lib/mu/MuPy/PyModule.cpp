@@ -351,6 +351,10 @@ namespace Mu
 
         if (t == c->intType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting int");
+            }
             if (PyLong_Check(pobj))
             {
                 return Value(int(PyLong_AsLong(pobj)));
@@ -360,7 +364,7 @@ namespace Mu
                 throw invalid_argument("expecting int");
             }
         }
-        else if (t == c->int64Type() && PyLong_Check(pobj))
+        else if (t == c->int64Type() && pobj && PyLong_Check(pobj))
         {
             if (PyLong_Check(pobj))
             {
@@ -373,6 +377,10 @@ namespace Mu
         }
         else if (t == c->shortType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting int to convert to short");
+            }
             if (PyLong_Check(pobj))
             {
                 return Value(short(PyLong_AsLong(pobj)));
@@ -384,6 +392,10 @@ namespace Mu
         }
         else if (t == c->byteType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting int to convert to byte");
+            }
             if (PyLong_Check(pobj))
             {
                 return Value(byte(PyLong_AsLong(pobj)));
@@ -395,7 +407,11 @@ namespace Mu
         }
         else if (t == c->boolType())
         {
-            if (PyBool_Check(pobj))
+            if (!pobj || pobj == Py_None)
+            {
+                return Value(false);
+            }
+            else if (PyBool_Check(pobj))
             {
                 return Value(pobj == Py_True);
             }
@@ -406,6 +422,10 @@ namespace Mu
         }
         else if (t == c->halfType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting float to convert to half");
+            }
             if (PyFloat_Check(pobj))
             {
                 half h = PyFloat_AsDouble(pobj);
@@ -418,6 +438,10 @@ namespace Mu
         }
         else if (t == c->floatType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting float");
+            }
             if (PyFloat_Check(pobj))
             {
                 return Value(float(PyFloat_AsDouble(pobj)));
@@ -429,6 +453,10 @@ namespace Mu
         }
         else if (t == c->doubleType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting float to convert to double");
+            }
             if (PyFloat_Check(pobj))
             {
                 return Value(PyFloat_AsDouble(pobj));
@@ -440,7 +468,7 @@ namespace Mu
         }
         else if (t == c->stringType())
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -462,6 +490,10 @@ namespace Mu
         }
         else if (t == c->nameType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting string or unicode");
+            }
             if (PyUnicode_Check(pobj))
             {
                 PyObject* utf8 = PyUnicode_AsUTF8String(pobj);
@@ -480,6 +512,10 @@ namespace Mu
         }
         else if (t == c->vec2fType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting (float, float) tuple");
+            }
             if (PyTuple_Check(pobj) && PyTuple_Size(pobj) == 2)
             {
                 Vector2f vec;
@@ -494,6 +530,10 @@ namespace Mu
         }
         else if (t == c->vec3fType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting (float, float, float) tuple");
+            }
             if (PyTuple_Check(pobj) && PyTuple_Size(pobj) == 3)
             {
                 Vector3f vec;
@@ -509,6 +549,10 @@ namespace Mu
         }
         else if (t == c->vec4fType())
         {
+            if (!pobj)
+            {
+                throw invalid_argument("expecting (float, float, float, float) tuple");
+            }
             if (PyTuple_Check(pobj) && PyTuple_Size(pobj) == 4)
             {
                 Vector4f vec;
@@ -525,7 +569,7 @@ namespace Mu
         }
         else if (const TupleType* ttype = dynamic_cast<const TupleType*>(t))
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -559,7 +603,7 @@ namespace Mu
         }
         else if (const ListType* ltype = dynamic_cast<const ListType*>(t))
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -586,7 +630,7 @@ namespace Mu
         }
         else if (const DynamicArrayType* atype = dynamic_cast<const DynamicArrayType*>(t))
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -613,7 +657,7 @@ namespace Mu
         }
         else if (const FixedArrayType* atype = dynamic_cast<const FixedArrayType*>(t))
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -647,7 +691,7 @@ namespace Mu
         }
         else if (const FunctionType* ftype = dynamic_cast<const FunctionType*>(t))
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -662,7 +706,7 @@ namespace Mu
         }
         else if (const Class* ctype = dynamic_cast<const Class*>(t))
         {
-            if (pobj == Py_None)
+            if (!pobj || pobj == Py_None)
             {
                 return Value(Pointer(0));
             }
@@ -1070,31 +1114,37 @@ namespace Mu
             throwBadArgumentException(NODE_THIS, NODE_THREAD, "Nil PyObject given");
         }
 
-        if (!PyTuple_Check(args))
+        if (!args)
         {
-            if (args != Py_None)
-            {
-                //
-                //  Reference counting: If we make a new tuple to pass to
-                //  CallObject, we must DecRef it after use, since at that point
-                //  there will be no other references to that object (we "own
-                //  the reference").  BUT, we assign the incoming "args" object
-                //  from the user to be the contents of the tuple and
-                //  PyTuple_SetItem "steals the reference", which means that it
-                //  will DecRef it when the Tuple is collected, since we did not
-                //  create the object and it needs to persist after we return,
-                //  so IncRef it.
-                //
-                tuple = PyTuple_New(1);
-                newt = true;
-                Py_XINCREF(args);
-                PyTuple_SetItem(tuple, 0, args);
-            }
-            else
-            {
-                tuple = PyTuple_New(0);
-                newt = true;
-            }
+            // NULL means pass Py_None as the argument (common pattern in Mu code)
+            tuple = PyTuple_New(1);
+            newt = true;
+            Py_INCREF(Py_None);
+            PyTuple_SetItem(tuple, 0, Py_None);
+        }
+        else if (args == Py_None)
+        {
+            // Py_None explicitly means no arguments
+            tuple = PyTuple_New(0);
+            newt = true;
+        }
+        else if (!PyTuple_Check(args))
+        {
+            //
+            //  Reference counting: If we make a new tuple to pass to
+            //  CallObject, we must DecRef it after use, since at that point
+            //  there will be no other references to that object (we "own
+            //  the reference").  BUT, we assign the incoming "args" object
+            //  from the user to be the contents of the tuple and
+            //  PyTuple_SetItem "steals the reference", which means that it
+            //  will DecRef it when the Tuple is collected, since we did not
+            //  create the object and it needs to persist after we return,
+            //  so IncRef it.
+            //
+            tuple = PyTuple_New(1);
+            newt = true;
+            Py_XINCREF(args);
+            PyTuple_SetItem(tuple, 0, args);
         }
         else
         {

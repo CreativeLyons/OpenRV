@@ -120,6 +120,24 @@ SET(_patch_command_for_imgui
     patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/patch/imgui_cpp_h.patch
 )
 
+# On macOS, add framework search path for dummy AGL framework
+IF(RV_TARGET_DARWIN)
+  SET(_dummy_agl_framework_path
+      "${CMAKE_BINARY_DIR}/frameworks"
+  )
+  IF(EXISTS "${_dummy_agl_framework_path}/AGL.framework")
+    # Add framework search path so linker can find dummy AGL framework
+    LIST(APPEND _configure_options "-DCMAKE_EXE_LINKER_FLAGS=-F${_dummy_agl_framework_path}")
+    LIST(APPEND _configure_options "-DCMAKE_SHARED_LINKER_FLAGS=-F${_dummy_agl_framework_path}")
+    LIST(APPEND _configure_options "-DCMAKE_MODULE_LINKER_FLAGS=-F${_dummy_agl_framework_path}")
+  ELSE()
+    # Fallback: use undefined dynamic lookup if framework doesn't exist
+    LIST(APPEND _configure_options "-DCMAKE_EXE_LINKER_FLAGS=-Wl,-undefined,dynamic_lookup")
+    LIST(APPEND _configure_options "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-undefined,dynamic_lookup")
+    LIST(APPEND _configure_options "-DCMAKE_MODULE_LINKER_FLAGS=-Wl,-undefined,dynamic_lookup")
+  ENDIF()
+ENDIF()
+
 EXTERNALPROJECT_ADD(
   ${_target}
   URL ${_imgui_download_url}

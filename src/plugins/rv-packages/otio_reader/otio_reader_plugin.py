@@ -33,10 +33,16 @@ import sys
 from rv import commands, extra_commands
 from rv import rvtypes
 
-import opentimelineio as otio
+try:
+    import opentimelineio as otio
+    import otio_reader
+    import otio_writer
 
-import otio_reader
-import otio_writer
+    _otio_available = True
+except ImportError:
+    # OpenTimelineIO or dependencies not available - module cannot function
+    _otio_available = False
+    otio = None
 
 
 class Mode(object):
@@ -215,6 +221,10 @@ def _remove_source_from_views(source_group):
 
 
 def createMode():
+    if not _otio_available:
+        # OpenTimelineIO not available - return None to skip this mode
+        return None
+
     support_files_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "SupportFiles", "otio_reader")
 
     manifest_path = os.environ.get("OTIO_PLUGIN_MANIFEST_PATH", "")

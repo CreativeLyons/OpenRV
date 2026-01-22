@@ -116,3 +116,25 @@ SET_PROPERTY(
   CACHE RV_FFMPEG
   PROPERTY STRINGS ${_RV_FFMPEG}
 )
+
+#
+# PySide option
+#
+# This option controls whether PySide2/PySide6 is built as part of the Python3 dependency. PySide is not required for RV runtime, but may be needed for Python
+# bindings.
+#
+OPTION(RV_BUILD_PYSIDE "Build PySide2/PySide6 as part of Python3 dependency" ON)
+
+#
+# NDI plugin option
+#
+# This option controls whether the NDI output plugin is built. NDI is an optional plugin that requires the NDI SDK to be installed.
+#
+OPTION(RV_BUILD_NDI "Build NDI output plugin (requires NDI SDK)" ON)
+
+#
+# Tests option
+#
+# This option controls whether test targets are built and enabled. Tests are not required for RV runtime.
+#
+OPTION(RV_BUILD_TESTS "Build and enable test targets" ON)

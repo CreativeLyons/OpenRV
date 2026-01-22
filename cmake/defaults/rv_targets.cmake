@@ -90,6 +90,29 @@ IF(APPLE)
     -DOSX_VERSION=${_macos_version_string}
   )
 
+  # AGL framework was deprecated and removed in macOS 10.14+ Qt6::OpenGL adds -framework AGL, but it doesn't exist in newer macOS SDKs Check if AGL exists in
+  # the SDK, and if not, use our dummy framework
+  EXECUTE_PROCESS(
+    COMMAND find ${CMAKE_OSX_SYSROOT}/System/Library/Frameworks -name "AGL.framework" 2>/dev/null
+    OUTPUT_VARIABLE AGL_FRAMEWORK_PATH
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET
+  )
+  IF(AGL_FRAMEWORK_PATH STREQUAL "")
+    # AGL doesn't exist in SDK - add our dummy AGL framework to framework search path This allows the linker to find -framework AGL without modifying Qt
+    SET(_dummy_agl_framework_path
+        "${CMAKE_BINARY_DIR}/frameworks"
+    )
+    IF(EXISTS "${_dummy_agl_framework_path}/AGL.framework")
+      # Add dummy AGL framework directory to framework search path
+      ADD_LINK_OPTIONS(-F "${_dummy_agl_framework_path}")
+      MESSAGE(STATUS "Using dummy AGL framework at ${_dummy_agl_framework_path}/AGL.framework")
+    ELSE()
+      # Fallback: use undefined dynamic lookup if framework doesn't exist This is less ideal but allows build to proceed
+      ADD_LINK_OPTIONS(-Wl,-undefined,dynamic_lookup)
+      MESSAGE(WARNING "Dummy AGL framework not found at ${_dummy_agl_framework_path}/AGL.framework, using -undefined dynamic_lookup fallback")
+    ENDIF()
+  ENDIF()
+
   #
   # CXXFLAGS_DARWIN   += -DOSX_VERSION=\"$(shell sw_vers -productVersion)\"
   #

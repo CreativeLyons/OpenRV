@@ -22,6 +22,7 @@
 #include <TwkApp/Event.h>
 #include <TwkApp/EventTable.h>
 #include <TwkApp/Menu.h>
+#include <TwkApp/Mode.h>
 #include <sstream>
 
 namespace TwkApp
@@ -181,6 +182,39 @@ namespace TwkApp
         return PyLong_FromLong(1);
     }
 
+    static PyObject* defineMinorMode(PyObject* self, PyObject* args)
+    {
+        PyLockObject locker;
+        const char* modeName = 0;
+        const char* sortKey = 0;
+        int ordering = 0;
+
+        if (!PyArg_ParseTuple(args, "s|si", &modeName, &sortKey, &ordering))
+            return NULL;
+
+        Document* d = currentDocument();
+
+        if (!d)
+        {
+            PyErr_SetString(PyExc_Exception, "No active document");
+            return NULL;
+        }
+
+        if (d->findModeByName(modeName))
+        {
+            // Mode already exists, don't create a duplicate
+            Py_RETURN_NONE;
+        }
+
+        MinorMode* mode = new MinorMode(modeName, d);
+        mode->setOrder(ordering);
+        if (sortKey)
+            mode->setSortKey(sortKey);
+        d->addMode(mode);
+
+        Py_RETURN_NONE;
+    }
+
     static PyObject* py_imgui_register_diagnostics_callback(PyObject*, PyObject* args)
     {
         PyObject* callable;
@@ -215,6 +249,7 @@ namespace TwkApp
         {"bind", bind, METH_VARARGS, "bind event to action."},
         {"bindRegex", bindRegex, METH_VARARGS, "bind regex event to action."},
         {"defineModeMenu", defineModeMenu, METH_VARARGS, "define the menu for a mode."},
+        {"defineMinorMode", defineMinorMode, METH_VARARGS, "define a minor mode."},
         {"register_diagnostics_callback", py_imgui_register_diagnostics_callback, METH_VARARGS, "Register a Python ImGui draw callback"},
         {"unregister_diagnostics_callback", py_imgui_unregister_diagnostics_callback, METH_VARARGS,
          "Unregister a Python ImGui draw callback"},

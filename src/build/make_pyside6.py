@@ -240,8 +240,36 @@ def build() -> None:
         if VARIANT == "Debug":
             pyside_build_args.append("--debug")
 
+    # On macOS, exclude Homebrew Qt from CMake search to prevent conflicts
+    env = os.environ.copy()
+    if platform.system() == "Darwin":
+        # Set CMAKE_PREFIX_PATH to only include the specified Qt installation
+        # This prevents CMake from finding Homebrew Qt components
+        # Filter out Homebrew paths completely
+        # Convert pathlib.Path to string if needed
+        qt_path_str = str(QT_OUTPUT_DIR) if QT_OUTPUT_DIR else ""
+        if not qt_path_str:
+            raise ValueError("QT_OUTPUT_DIR is not set or is empty")
+        if "CMAKE_PREFIX_PATH" in env:
+            existing_paths = env["CMAKE_PREFIX_PATH"].split(os.pathsep)
+            filtered_paths = [p for p in existing_paths if p and "/opt/homebrew" not in p and "/usr/local" not in p]
+            env["CMAKE_PREFIX_PATH"] = os.pathsep.join([qt_path_str] + filtered_paths)
+        else:
+            env["CMAKE_PREFIX_PATH"] = qt_path_str
+        # Force CMake to only search in CMAKE_PREFIX_PATH, not system paths
+        env["CMAKE_FIND_ROOT_PATH_MODE_PACKAGE"] = "ONLY"
+        # Also unset any Qt6_DIR variables that might point to Homebrew
+        for key in list(env.keys()):
+            if key.startswith("Qt6") and key.endswith("_DIR"):
+                del env[key]
+        # Remove Homebrew from PATH to prevent finding Homebrew CMake modules
+        if "PATH" in env:
+            paths = env["PATH"].split(os.pathsep)
+            filtered_paths = [p for p in paths if p and "/opt/homebrew" not in p]
+            env["PATH"] = os.pathsep.join(filtered_paths)
+
     print(f"Executing {pyside_build_args}")
-    subprocess.run(pyside_build_args).check_returncode()
+    subprocess.run(pyside_build_args, env=env).check_returncode()
 
     generator_cleanup_args = python_interpreter_args + [
         "-m",
