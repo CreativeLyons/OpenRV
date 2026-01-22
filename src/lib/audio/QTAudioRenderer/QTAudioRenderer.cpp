@@ -59,11 +59,19 @@ namespace IPCore
     static ENVVAR_BOOL(evApplyWasapiFix, "RV_AUDIO_APPLY_WASAPI_FIX", true);
 
     // Utility function that returns the Sample size.
+#ifdef QT_MULTIMEDIA_AVAILABLE
     int sampleSize(const QAudioFormat& format) { return format.bytesPerSample(); }
+#else
+    int sampleSize(const QAudioFormat&) { return 0; }
+#endif
 
     // NOTE_QT: In theory, this should be called sampleFormat for Qt6. Keep it
     // as is for now.
+#ifdef QT_MULTIMEDIA_AVAILABLE
     SampleFormat sampleType(const QAudioFormat& format) { return format.sampleFormat(); }
+#else
+    SampleFormat sampleType(const QAudioFormat&) { return SampleFormat(); }
+#endif
 
     //----------------------------------------------------------------------
     //      QTAudioThread
@@ -97,7 +105,11 @@ namespace IPCore
 
         // Cache some format related variables so we dont have to
         // precompute them each time.
+#ifdef QT_MULTIMEDIA_AVAILABLE
         m_bytesPerSample = audioRenderer.m_format.channelCount() * sampleSize(audioRenderer.m_format);
+#else
+        m_bytesPerSample = 0;
+#endif
 
         m_preRollMode = m_audioRenderer.m_parameters.preRoll;
 
@@ -343,11 +355,19 @@ namespace IPCore
 
         // Create the QAudioOutput and QIO devices
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
         m_bytesPerSample = m_audioRenderer.m_format.channelCount() * sampleSize(m_audioRenderer.m_format);
+#else
+        m_bytesPerSample = 0;
+#endif
 
         if (m_ioDevice = new QTAudioIODevice(*this))
         {
+#ifdef QT_MULTIMEDIA_AVAILABLE
             if (m_audioOutput = new QTAudioOutput(m_audioRenderer.m_device, m_audioRenderer.m_format, *m_ioDevice, *this))
+#else
+            if (m_audioOutput = new QTAudioOutput(nullptr, nullptr, *m_ioDevice, *this))
+#endif
             {
                 m_ioDevice->start();
                 return true;
@@ -417,18 +437,30 @@ namespace IPCore
         {
             TwkUtil::Log("AUDIO") << "qIODeviceCallback: asking maxLenInBytes=" << (int)maxLenInBytes
                                   << " isPlayingAudio=" << (int)m_audioRenderer.isPlaying()
+#ifdef QT_MULTIMEDIA_AVAILABLE
                                   << " audiooutput state=" << (int)m_audioOutput->state();
+#else
+                                  << " audiooutput state=unknown";
+#endif
         }
 
         const AudioRenderer::DeviceState& state = deviceState();
 
         if (data && (m_audioRenderer.isPlaying()) && (maxLenInBytes >= m_bytesPerSample))
         {
+#ifdef QT_MULTIMEDIA_AVAILABLE
             const int bufferSize = m_audioOutput->bufferSize();
+#else
+            const int bufferSize = 0;
+#endif
 
             // Calculate the period size based on the buffer size and bytes per
             // frame. (This calculation changed with Qt 6)
+#ifdef QT_MULTIMEDIA_AVAILABLE
             const int periodSize = bufferSize / m_audioRenderer.m_format.bytesPerFrame();
+#else
+            const int periodSize = 0;
+#endif
 
 #ifdef PLATFORM_DARWIN
             const bool doPreRoll = false;
@@ -441,7 +473,11 @@ namespace IPCore
             //  Figure out the latency.
             //  Only valid for OSX as processedUSecs() doesnt return
             //  anything useful on Linux/Windows.
+#ifdef QT_MULTIMEDIA_AVAILABLE
             qint64 processedUSecs = m_audioOutput->processedUSecs();
+#else
+            qint64 processedUSecs = 0;
+#endif
             TwkAudio::Time actualPlayedTime = TwkAudio::Time(processedUSecs / 1000000.0);
             TwkAudio::Time targetPlayedTime = TwkAudio::samplesToTime(m_processedSamples, state.rate);
             setDeviceLatency(targetPlayedTime - actualPlayedTime);
@@ -716,7 +752,14 @@ namespace IPCore
         return 0;
     }
 
-    qint64 QTAudioIODevice::bytesAvailable() const { return m_thread.audioOutput()->bufferSize() + QIODevice::bytesAvailable(); }
+    qint64 QTAudioIODevice::bytesAvailable() const
+    {
+#ifdef QT_MULTIMEDIA_AVAILABLE
+        return m_thread.audioOutput()->bufferSize() + QIODevice::bytesAvailable();
+#else
+        return QIODevice::bytesAvailable();
+#endif
+    }
 
     //----------------------------------------------------------------------
     //      QTAudioOutput
@@ -724,11 +767,17 @@ namespace IPCore
     //      This is the Qt audio output class that lives
     //      with the audio thread.
     //----------------------------------------------------------------------
+#ifdef QT_MULTIMEDIA_AVAILABLE
     QTAudioOutput::QTAudioOutput(QAudioDevice& audioDevice, QAudioFormat& audioFormat, QTAudioIODevice& ioDevice,
                                  QTAudioThread& audioThread)
         : QAudioSink(audioDevice, audioFormat)
         , m_device(audioDevice)
         , m_format(audioFormat)
+#else
+    QTAudioOutput::QTAudioOutput(void*, void*, QTAudioIODevice& ioDevice, QTAudioThread& audioThread)
+        : m_device(nullptr)
+        , m_format(nullptr)
+#endif
         , m_ioDevice(ioDevice)
         , m_thread(audioThread)
         , m_isFlushing(false)
@@ -738,6 +787,7 @@ namespace IPCore
     {
     }
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     std::string QTAudioOutput::toString(QAudio::State state)
     {
         switch (state)
@@ -761,7 +811,11 @@ namespace IPCore
 
         doneFlushing();
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
         if (state() == QAudio::StoppedState)
+#else
+        if (false)
+#endif
         {
             m_thread.startOfInitialization();
 
@@ -779,7 +833,9 @@ namespace IPCore
             m_thread.setStartSample(0);
             m_thread.setProcessedSamples(0);
             m_thread.setPreRollDelay(0);
+#ifdef QT_MULTIMEDIA_AVAILABLE
             start(&m_ioDevice);
+#endif
         }
         else if (state() == QAudio::SuspendedState)
         {
@@ -791,7 +847,14 @@ namespace IPCore
             resume();
         }
     }
+#else
+    void QTAudioOutput::startAudio()
+    {
+        // Stub implementation when Multimedia is not available
+    }
+#endif
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     void QTAudioOutput::resetAudio()
     {
         QTAUDIO_DEBUG("QTAudioOutput::resetAudio")
@@ -825,6 +888,13 @@ namespace IPCore
             suspend();
         }
     }
+#else
+    void QTAudioOutput::resetAudio() {}
+
+    void QTAudioOutput::stopAudio() {}
+
+    void QTAudioOutput::suspendAudio() {}
+#endif
 
     void QTAudioOutput::startFlushing()
     {
@@ -832,6 +902,7 @@ namespace IPCore
         m_flushedBytes = 0;
     }
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     void QTAudioOutput::suspendAndResetAudio()
     {
         QTAUDIO_DEBUG("QTAudioOutput::suspendAndResetAudio")
@@ -1004,6 +1075,15 @@ namespace IPCore
                                           << " audioOutput periodSize=" << (int)(periodSize);
         }
     }
+#else
+    void QTAudioOutput::suspendAndResetAudio() {}
+
+    int QTAudioOutput::calcAudioBufferSize(const int, const int, const int, const int) const { return 0; }
+
+    void QTAudioOutput::setAudioOutputBufferSize() {}
+
+    void QTAudioOutput::play(IPCore::Session*) {}
+#endif
 
     //----------------------------------------------------------------------
     //      QTAudioRenderer
@@ -1029,6 +1109,7 @@ namespace IPCore
         }
     }
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     TwkAudio::Format QTAudioRenderer::getTwkAudioFormat() const { return convertToTwkAudioFormat(sampleType(m_format)); }
 
     TwkAudio::Format QTAudioRenderer::convertToTwkAudioFormat(SampleFormat fmtType) const
@@ -1101,7 +1182,9 @@ namespace IPCore
 
         return QAudioFormat::Unknown;
     }
+#endif
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     void QTAudioRenderer::availableLayouts(const Device& d, LayoutsVector& layouts)
     {
         const QAudioDevice& device = m_deviceList[d.index];
@@ -1266,8 +1349,11 @@ namespace IPCore
 
 #endif
     }
+#endif
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     void QTAudioRenderer::initDeviceList() { m_deviceList << QMediaDevices::audioOutputs(); }
+#endif
 
     //  The purpose of init() is to
     //      1. Populate the AudioRenderer m_outputDevices();
@@ -1278,6 +1364,7 @@ namespace IPCore
     //         preference sample size and sample rate.
     //      4. Create QAudioThread.
     //
+#ifdef QT_MULTIMEDIA_AVAILABLE
     void QTAudioRenderer::init()
     {
         const int channelCount = TwkAudio::channelsCount(m_parameters.layout);
@@ -1568,6 +1655,16 @@ namespace IPCore
             setErrorCondition("No devices available for Platform Audio.");
         }
     }
+#else
+    // Stub implementation when Multimedia is not available
+    void QTAudioRenderer::init() { setErrorCondition("Qt Multimedia is not available - audio features disabled."); }
+
+    TwkAudio::Format QTAudioRenderer::getTwkAudioFormat() const { return TwkAudio::UnknownFormat; }
+
+    TwkAudio::Format QTAudioRenderer::convertToTwkAudioFormat(SampleFormat) const { return TwkAudio::UnknownFormat; }
+
+    void QTAudioRenderer::initDeviceList() {}
+#endif
 
     void QTAudioRenderer::play()
     {

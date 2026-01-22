@@ -95,7 +95,9 @@
 #include <MuQt6/QWidgetType.h>
 #include <MuQt6/QObjectType.h>
 #include <MuQt6/QMainWindowType.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <MuQt6/QWebEnginePageType.h>
+#endif
 #endif
 
 #include <RvCommon/RvJavaScriptObject.h>
@@ -310,7 +312,11 @@ namespace Rv
             new Function(c, "networkAccessManager", networkAccessManager, None, Return, "qt.QNetworkAccessManager", End),
 
             new Function(c, "javascriptMuExport", javascriptMuExport, None, Return, "void", Parameters,
+#ifdef QT_WEBENGINEWIDGETS_LIB
                          new Param(c, "frame", "qt.QWebEnginePage"), End),
+#else
+                         new Param(c, "frame", "qt.QObject"), End),
+#endif
 
             new Function(c, "sessionFromUrl", sessionFromUrl, None, Return, "void", Parameters, new Param(c, "url", "string"), End),
 
@@ -1785,7 +1791,11 @@ namespace Rv
         Session* s = Session::currentSession();
         RvDocument* doc = reinterpret_cast<RvDocument*>(s->opaquePointer());
 
+#ifdef QT_WEBENGINEWIDGETS_LIB
         QWebEnginePage* frame = Mu::object<QWebEnginePage>(NODE_ARG_OBJECT(0, ClassInstance));
+#else
+        void* frame = nullptr;
+#endif
 
         RvJavaScriptObject* obj = new RvJavaScriptObject(doc, frame);
     }

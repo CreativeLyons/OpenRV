@@ -34,4 +34,9 @@ TARGET_LINK_LIBRARIES(
   PRIVATE Mu MuLang MuGLText
 )
 
+# On macOS, handle missing AGL framework (deprecated, removed in macOS 10.14+) MuGLText links to TwkGLText which links to TwkGLF which links to Qt::OpenGL
+IF(RV_TARGET_DARWIN)
+  TARGET_LINK_OPTIONS(${_target} PRIVATE "-Wl,-undefined,dynamic_lookup")
+ENDIF()
+
 RV_STAGE(TYPE "MU_PLUGIN" TARGET ${_target})

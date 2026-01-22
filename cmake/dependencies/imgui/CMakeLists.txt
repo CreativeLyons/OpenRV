@@ -90,6 +90,12 @@ TARGET_COMPILE_DEFINITIONS(
     "IMPLOT_CUSTOM_NUMERIC_TYPES=(signed char)(unsigned char)(signed short)(unsigned short)(signed int)(unsigned int)(signed long)(unsigned long)(signed long long)(unsigned long long)(float)(double)(long double)"
 )
 
+# On macOS, handle missing AGL framework (deprecated, removed in macOS 10.14+) Qt::OpenGL adds -framework AGL which doesn't exist in newer macOS SDKs Use
+# TARGET_LINK_OPTIONS to set linker flags that will apply to all link commands
+IF(APPLE)
+  TARGET_LINK_OPTIONS(imgui PRIVATE "-Wl,-undefined,dynamic_lookup")
+ENDIF()
+
 TARGET_LINK_LIBRARIES(
   imgui
   PRIVATE OpenGL::GL OpenGL::GLU Qt::Core Qt::Gui Qt::Widgets Qt::OpenGL

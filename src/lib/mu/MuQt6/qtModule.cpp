@@ -8,7 +8,9 @@
 #include <QtGui/QtGui>
 #include <QtNetwork/QtNetwork>
 #include <QtUiTools/QtUiTools>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <QtWebEngineWidgets/QWebEngineView>
+#endif
 #include <MuQt6/Bridge.h>
 #include <MuQt6/MuQt.h>
 #include <MuQt6/SignalSpy.h>
@@ -201,7 +203,7 @@ namespace Mu
             vector<char> nameBuffer, n2;
 
 #if 0
-        cout << "connect signal: " << signalName(str.str(), n2) 
+        cout << "connect signal: " << signalName(str.str(), n2)
              << " of " << sender->metaObject()->className()
              << endl;
 #endif
@@ -287,6 +289,7 @@ namespace Mu
         QWidget* w = loader.load(&file, parent);
         file.close();
 
+#ifdef QT_WEBENGINEWIDGETS_LIB
         // Note that we cannot instantiate a QWebEngineView widget via a .ui
         // file to conform with LGPL licensing. Because the Qt QWebEngineView
         // plugin is GPL due to its QtDesigner dependency. So to work around
@@ -304,6 +307,7 @@ namespace Mu
                 from = nullptr;
             }
         }
+#endif
 
         QWidgetType* wtype = c->findSymbolOfTypeByQualifiedName<QWidgetType>(c->internName("qt.QWidget"), false);
 

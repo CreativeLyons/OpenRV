@@ -51,11 +51,15 @@
 #include <MuQt6/QTextStreamType.h>
 #include <MuQt6/QNetworkCookieType.h>
 #include <MuQt6/QCursorType.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <MuQt6/QWebEngineSettingsType.h>
 #include <MuQt6/QWebEngineHistoryType.h>
+#endif
 #include <MuQt6/QFocusEventType.h>
 #include <MuQt6/QTimerType.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <MuQt6/QWebChannelType.h>
+#endif
 #include <MuQt6/QPaintEventType.h>
 #include <MuQt6/QIODeviceType.h>
 #include <MuQt6/QCompleterType.h>
@@ -71,9 +75,11 @@
 #include <MuQt6/QTcpServerType.h>
 #include <MuQt6/QRadialGradientType.h>
 #include <MuQt6/QEventLoopType.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <MuQt6/QWebEnginePageType.h>
 #include <MuQt6/QWebEngineCookieStoreType.h>
 #include <MuQt6/QWebEngineProfileType.h>
+#endif
 #include <MuQt6/QGestureEventType.h>
 #include <MuQt6/QQmlContextType.h>
 #include <MuQt6/QMimeDataType.h>
@@ -129,7 +135,9 @@
 #include <MuQt6/QMenuBarType.h>
 #include <MuQt6/QComboBoxType.h>
 #include <MuQt6/QFrameType.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <MuQt6/QWebEngineViewType.h>
+#endif
 #include <MuQt6/QAbstractSliderType.h>
 #include <MuQt6/QGroupBoxType.h>
 #include <MuQt6/QGuiApplicationType.h>

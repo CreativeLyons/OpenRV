@@ -98,8 +98,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QNetworkCookie);
     QCursorType* t_QCursor = new QCursorType(c, "QCursor");
     qt->addSymbol(t_QCursor);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebEngineSettingsType* t_QWebEngineSettings = new QWebEngineSettingsType(c, "QWebEngineSettings");
     qt->addSymbol(t_QWebEngineSettings);
+#endif
     QShortcutEventType* t_QShortcutEvent = new QShortcutEventType(c, "QShortcutEvent", t_QEvent);
     qt->addSymbol(t_QShortcutEvent);
     QLinearGradientType* t_QLinearGradient = new QLinearGradientType(c, "QLinearGradient", t_QGradient);
@@ -108,8 +110,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QCloseEvent);
     QItemSelectionModelType* t_QItemSelectionModel = new QItemSelectionModelType(c, "QItemSelectionModel", t_QObject);
     qt->addSymbol(t_QItemSelectionModel);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebEngineCookieStoreType* t_QWebEngineCookieStore = new QWebEngineCookieStoreType(c, "QWebEngineCookieStore", t_QObject);
     qt->addSymbol(t_QWebEngineCookieStore);
+#endif
     QPaintEventType* t_QPaintEvent = new QPaintEventType(c, "QPaintEvent", t_QEvent);
     qt->addSymbol(t_QPaintEvent);
     QJSEngineType* t_QJSEngine = new QJSEngineType(c, "QJSEngine", t_QObject);
@@ -118,8 +122,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QFileOpenEvent);
     QWindowStateChangeEventType* t_QWindowStateChangeEvent = new QWindowStateChangeEventType(c, "QWindowStateChangeEvent", t_QEvent);
     qt->addSymbol(t_QWindowStateChangeEvent);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebChannelType* t_QWebChannel = new QWebChannelType(c, "QWebChannel", t_QObject);
     qt->addSymbol(t_QWebChannel);
+#endif
     QRadialGradientType* t_QRadialGradient = new QRadialGradientType(c, "QRadialGradient", t_QGradient);
     qt->addSymbol(t_QRadialGradient);
     QPixmapType* t_QPixmap = new QPixmapType(c, "QPixmap", t_QPaintDevice);
@@ -132,8 +138,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QTimerEvent);
     QHideEventType* t_QHideEvent = new QHideEventType(c, "QHideEvent", t_QEvent);
     qt->addSymbol(t_QHideEvent);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebEngineHistoryType* t_QWebEngineHistory = new QWebEngineHistoryType(c, "QWebEngineHistory", t_QObject);
     qt->addSymbol(t_QWebEngineHistory);
+#endif
     QHelpEventType* t_QHelpEvent = new QHelpEventType(c, "QHelpEvent", t_QEvent);
     qt->addSymbol(t_QHelpEvent);
     QImageType* t_QImage = new QImageType(c, "QImage", t_QPaintDevice);
@@ -158,8 +166,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QResizeEvent);
     QMoveEventType* t_QMoveEvent = new QMoveEventType(c, "QMoveEvent", t_QEvent);
     qt->addSymbol(t_QMoveEvent);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebEngineProfileType* t_QWebEngineProfile = new QWebEngineProfileType(c, "QWebEngineProfile", t_QObject);
     qt->addSymbol(t_QWebEngineProfile);
+#endif
     QQmlContextType* t_QQmlContext = new QQmlContextType(c, "QQmlContext", t_QObject);
     qt->addSymbol(t_QQmlContext);
     QMimeDataType* t_QMimeData = new QMimeDataType(c, "QMimeData", t_QObject);
@@ -194,8 +204,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QButtonGroup);
     QTextStreamType* t_QTextStream = new QTextStreamType(c, "QTextStream", t_QIODeviceBase);
     qt->addSymbol(t_QTextStream);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebEnginePageType* t_QWebEnginePage = new QWebEnginePageType(c, "QWebEnginePage", t_QObject);
     qt->addSymbol(t_QWebEnginePage);
+#endif
     QInputEventType* t_QInputEvent = new QInputEventType(c, "QInputEvent", t_QEvent);
     qt->addSymbol(t_QInputEvent);
     QTabWidgetType* t_QTabWidget = new QTabWidgetType(c, "QTabWidget", t_QWidget);
@@ -250,8 +262,10 @@ QWidgetType* addAllQTSymbols(MuLangContext* c, Module* qt)
     qt->addSymbol(t_QNetworkReply);
     QFileDeviceType* t_QFileDevice = new QFileDeviceType(c, "QFileDevice", t_QIODevice);
     qt->addSymbol(t_QFileDevice);
+#ifdef QT_WEBENGINEWIDGETS_LIB
     QWebEngineViewType* t_QWebEngineView = new QWebEngineViewType(c, "QWebEngineView", t_QWidget);
     qt->addSymbol(t_QWebEngineView);
+#endif
     QQuickWidgetType* t_QQuickWidget = new QQuickWidgetType(c, "QQuickWidget", t_QWidget);
     qt->addSymbol(t_QQuickWidget);
     QStandardItemModelType* t_QStandardItemModel = new QStandardItemModelType(c, "QStandardItemModel", t_QAbstractItemModel);

@@ -15,6 +15,12 @@
 #define __MuQt5__QWebEngineSettingsType__h__
 #include <iostream>
 #include <Mu/Class.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
+#include <QtWebEngineWidgets/QtWebEngineWidgets>
+#else
+// Forward declarations when WebEngine is not available
+class QWebEngineSettings;
+#endif
 
 namespace Mu
 {

@@ -7,6 +7,12 @@
 INCLUDE(ProcessorCount) # require CMake 3.15+
 PROCESSORCOUNT(_cpu_count)
 
+# Find python3 for GLEW build (GLEW requires 'python' command)
+FIND_PROGRAM(PYTHON3_EXECUTABLE python3)
+IF(NOT PYTHON3_EXECUTABLE)
+  MESSAGE(FATAL_ERROR "python3 not found - required for GLEW build")
+ENDIF()
+
 RV_CREATE_STANDARD_DEPS_VARIABLES("RV_DEPS_GLEW" "${RV_DEPS_GLEW_VERSION}" "make" "")
 
 SET(_download_url
@@ -58,9 +64,14 @@ EXTERNALPROJECT_ADD(
     cd auto && git clone https://github.com/KhronosGroup/OpenGL-Registry.git || true && cd OpenGL-Registry && git checkout
     a77f5b6ffd0b0b74904f755ae977fa278eac4e95 && cd .. && git clone --depth=1 --branch glew https://github.com/nigels-com/glfixes glfixes || true && touch
     OpenGL-Registry/.dummy && cd ..
-  CONFIGURE_COMMAND cd auto && ${_make_command} && cd .. && ${_make_command}
-  BUILD_COMMAND ${_make_command} -j${_cpu_count} GLEW_DEST=${_install_dir}
-  INSTALL_COMMAND ${_make_command} install LIBDIR=${_lib_dir} GLEW_DEST=${_install_dir}
+  CONFIGURE_COMMAND
+    ${CMAKE_COMMAND} -E make_directory ${RV_DEPS_BASE_DIR}/${_target}/src/.bin && ${CMAKE_COMMAND} -E create_symlink ${PYTHON3_EXECUTABLE}
+    ${RV_DEPS_BASE_DIR}/${_target}/src/.bin/python && ${CMAKE_COMMAND} -E chdir ${RV_DEPS_BASE_DIR}/${_target}/src/auto ${CMAKE_COMMAND} -E env
+    PATH=${RV_DEPS_BASE_DIR}/${_target}/src/.bin:$ENV{PATH} ${_make_command} && ${CMAKE_COMMAND} -E chdir ${RV_DEPS_BASE_DIR}/${_target}/src ${CMAKE_COMMAND} -E
+    env PATH=${RV_DEPS_BASE_DIR}/${_target}/src/.bin:$ENV{PATH} ${_make_command}
+  BUILD_COMMAND ${CMAKE_COMMAND} -E env PATH=${RV_DEPS_BASE_DIR}/${_target}/src/.bin:$ENV{PATH} ${_make_command} -j${_cpu_count} GLEW_DEST=${_install_dir}
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E env PATH=${RV_DEPS_BASE_DIR}/${_target}/src/.bin:$ENV{PATH} ${_make_command} install LIBDIR=${_lib_dir}
+                  GLEW_DEST=${_install_dir}
   BUILD_IN_SOURCE TRUE
   BUILD_ALWAYS FALSE
   BUILD_BYPRODUCTS ${_glew_lib}

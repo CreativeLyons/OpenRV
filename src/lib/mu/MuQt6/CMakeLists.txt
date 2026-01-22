@@ -7,26 +7,71 @@
 INCLUDE(cxx_defaults)
 INCLUDE(rv_sed)
 
-FIND_PACKAGE(
-  Qt6
-  COMPONENTS Core
-             Gui
-             Network
-             OpenGL
-             Qml
-             Quick
-             QuickWidgets
-             Svg
-             SvgWidgets
-             Test
-             UiTools
-             WebChannel
-             WebEngineCore
-             WebEngineWidgets
-             Widgets
-             Xml
-  REQUIRED
+# Check if QtWebEngine should be skipped - check cache variable and file existence
+IF(DEFINED CACHE{RV_SKIP_QT_WEBENGINE}
+   AND CACHE{RV_SKIP_QT_WEBENGINE}
 )
+  SET(_skip_webengine
+      TRUE
+  )
+ELSEIF(NOT EXISTS "${RV_DEPS_QT_LOCATION}/lib/cmake/Qt6WebEngineCore/Qt6WebEngineCoreConfig.cmake")
+  SET(_skip_webengine
+      TRUE
+  )
+ELSE()
+  SET(_skip_webengine
+      FALSE
+  )
+ENDIF()
+
+IF(_skip_webengine)
+  # Build without WebEngine components
+  FIND_PACKAGE(
+    Qt6
+    COMPONENTS Core
+               Gui
+               Network
+               OpenGL
+               Qml
+               Quick
+               QuickWidgets
+               Svg
+               SvgWidgets
+               Test
+               UiTools
+               Widgets
+               Xml
+    REQUIRED
+  )
+  SET(_muqt6_skip_webengine
+      TRUE
+  )
+ELSE()
+  # Build with WebEngine components
+  FIND_PACKAGE(
+    Qt6
+    COMPONENTS Core
+               Gui
+               Network
+               OpenGL
+               Qml
+               Quick
+               QuickWidgets
+               Svg
+               SvgWidgets
+               Test
+               UiTools
+               WebChannel
+               WebEngineCore
+               WebEngineWidgets
+               Widgets
+               Xml
+    REQUIRED
+  )
+  SET(_muqt6_skip_webengine
+      FALSE
+  )
+ENDIF()
 
 SET(CMAKE_AUTOUIC
     ON
@@ -224,6 +269,13 @@ SET(_autotypes
     QmlContext
     QuickWidget
     QuickItem
+)
+
+# Conditionally add WebEngine types only if WebEngine is available
+IF(NOT _muqt6_skip_webengine)
+  LIST(
+    APPEND
+    _autotypes
     WebEngineCookieStore
     WebEngineProfile
     WebEngineView
@@ -231,12 +283,9 @@ SET(_autotypes
     WebEnginePage
     WebEngineHistory
     WebChannel
-    #
-    # NetworkAccessManager has been modified to us an RVNetworkAccessManager instead of a QNetworkAccessManager, so if the generation script is run again the
-    # files QNetworkAccessManagerType.* must be modified accordingly.
-    #
-    # Painter PainterPath
-)
+  )
+ENDIF()
+
 FOREACH(
   _entry
   ${_autotypes}
@@ -326,48 +375,78 @@ ADD_CUSTOM_COMMAND(
   COMMENT "Patching the moc_SignalSpy.cpp file ..."
 )
 
-FIND_PACKAGE(
-  ${RV_QT_PACKAGE_NAME}
-  COMPONENTS Core
-             Gui
-             Network
-             OpenGL
-             Qml
-             Quick
-             QuickWidgets
-             Svg
-             Test
-             UiTools
-             WebChannel
-             WebEngineCore
-             WebEngineWidgets
-             Widgets
-             Xml
-  REQUIRED
-)
+# Use the same WebEngine skip logic as above
+IF(_muqt6_skip_webengine)
+  FIND_PACKAGE(
+    ${RV_QT_PACKAGE_NAME}
+    COMPONENTS Core
+               Gui
+               Network
+               OpenGL
+               Qml
+               Quick
+               QuickWidgets
+               Svg
+               Test
+               UiTools
+               Widgets
+               Xml
+    REQUIRED
+  )
+ELSE()
+  FIND_PACKAGE(
+    ${RV_QT_PACKAGE_NAME}
+    COMPONENTS Core
+               Gui
+               Network
+               OpenGL
+               Qml
+               Quick
+               QuickWidgets
+               Svg
+               Test
+               UiTools
+               WebChannel
+               WebEngineCore
+               WebEngineWidgets
+               Widgets
+               Xml
+    REQUIRED
+  )
+ENDIF()
 TARGET_INCLUDE_DIRECTORIES(
   ${_target}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# Link libraries - conditionally include WebEngine components
+SET(_muqt6_link_libs
+    Qt::Core
+    Qt::Gui
+    Qt::Network
+    Qt::OpenGL
+    Qt::Qml
+    Qt::Quick
+    Qt::QuickWidgets
+    Qt::Svg
+    Qt::SvgWidgets
+    Qt::Test
+    Qt::Widgets
+    Qt::Xml
+    qtcolortriangle
+)
+
+IF(NOT _muqt6_skip_webengine)
+  LIST(APPEND _muqt6_link_libs Qt::WebChannel Qt::WebEngineCore Qt::WebEngineWidgets)
+  TARGET_COMPILE_DEFINITIONS(
+    ${_target}
+    PUBLIC QT_WEBENGINEWIDGETS_LIB
+  )
+ENDIF()
+
 TARGET_LINK_LIBRARIES(
   ${_target}
-  PUBLIC Qt::Core
-         Qt::Gui
-         Qt::Network
-         Qt::OpenGL
-         Qt::Qml
-         Qt::Quick
-         Qt::QuickWidgets
-         Qt::Svg
-         Qt::SvgWidgets
-         Qt::Test
-         Qt::WebChannel
-         Qt::WebEngineCore
-         Qt::WebEngineWidgets
-         Qt::Widgets
-         Qt::Xml
-         qtcolortriangle
+  PUBLIC ${_muqt6_link_libs}
   PRIVATE Mu MuLang Qt::UiTools TwkQtCoreUtil TwkUtil
 )
 

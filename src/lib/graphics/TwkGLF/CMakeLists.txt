@@ -101,6 +101,11 @@ TARGET_LINK_LIBRARIES(
   Qt::OpenGL
 )
 
+# On macOS, handle missing AGL framework (deprecated, removed in macOS 10.14+) Qt::OpenGL adds -framework AGL which doesn't exist in newer macOS SDKs
+IF(RV_TARGET_DARWIN)
+  TARGET_LINK_OPTIONS(${_target} PUBLIC "-Wl,-undefined,dynamic_lookup")
+ENDIF()
+
 IF(RV_TARGET_WINDOWS)
   TARGET_LINK_LIBRARIES(${_target} glew)
 ENDIF()

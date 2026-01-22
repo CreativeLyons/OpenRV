@@ -13,8 +13,10 @@
 #include <TwkApp/Event.h>
 #include <TwkApp/EventNode.h>
 
+#ifdef QT_WEBENGINEWIDGETS_LIB
 class QWebEnginePage;
 class QWebChannel;
+#endif
 
 namespace Rv
 {
@@ -27,7 +29,11 @@ namespace Rv
         Q_OBJECT
 
     public:
+#ifdef QT_WEBENGINEWIDGETS_LIB
         RvJavaScriptObject(RvDocument*, QWebEnginePage* frame);
+#else
+        RvJavaScriptObject(RvDocument*, void* frame);
+#endif
         virtual ~RvJavaScriptObject();
 
         virtual Result receiveEvent(const TwkApp::Event&);
@@ -76,9 +82,13 @@ namespace Rv
     private:
         RvDocument* m_doc;
 
+#ifdef QT_WEBENGINEWIDGETS_LIB
         QWebChannel* m_channel;
-
         QWebEnginePage* m_frame;
+#else
+        void* m_channel;
+        void* m_frame;
+#endif
 
         QList<QRegularExpression> m_eventNames;
     };

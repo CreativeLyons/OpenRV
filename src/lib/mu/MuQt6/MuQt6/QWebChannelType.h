@@ -20,7 +20,12 @@
 #include <QtGui/QtGui>
 #include <QtWidgets/QtWidgets>
 #include <QtNetwork/QtNetwork>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <QtWebEngineWidgets/QtWebEngineWidgets>
+#else
+// Forward declarations when WebEngine is not available
+class QWebChannel;
+#endif
 #include <QtQml/QtQml>
 #include <QtQuick/QtQuick>
 #include <QtQuickWidgets/QtQuickWidgets>

@@ -94,7 +94,7 @@ IF(RV_VFX_PLATFORM STRGREATER_EQUAL CY2024)
   # Use Qt6 connections syntax because it generates the wrong QObject::connect for RvConsoleWindow.ui. TODO_QT: Could remove the connections from the UI XML and
   # add them to RvConsoleWindow.cpp
   SET(ui_options
-      --connections string
+      "--connections;string"
   )
 ENDIF()
 
@@ -118,7 +118,7 @@ FOREACH(
   ELSEIF(RV_VFX_PLATFORM STRGREATER_EQUAL CY2024)
     ADD_CUSTOM_COMMAND(
       OUTPUT ${outfile}
-      COMMAND ${QT_UIC_EXECUTABLE} ARGS ${ui_options} -o ${outfile} ${infile}
+      COMMAND ${UIC_EXECUTABLE} ${ui_options} -o ${outfile} ${infile}
       MAIN_DEPENDENCY ${infile}
       VERBATIM
     )

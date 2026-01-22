@@ -33,7 +33,9 @@
 #include <PyTwkApp/PyEventType.h>
 #include <PyTwkApp/PyInterface.h>
 #include <QtCore/QtCore>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <QWebEnginePage>
+#endif
 #include <QtWidgets/QFileIconProvider>
 #include <RvCommon/RvJavaScriptObject.h>
 #include <QtGui/QtGui>
@@ -410,7 +412,11 @@ namespace Rv
             return NULL;
         }
 
+#ifdef QT_WEBENGINEWIDGETS_LIB
         QWebEnginePage* webPagePointer = (QWebEnginePage*)pointer;
+#else
+        void* webPagePointer = (void*)pointer;
+#endif
         RvJavaScriptObject* obj = new RvJavaScriptObject(doc, webPagePointer);
 
         Py_RETURN_NONE;

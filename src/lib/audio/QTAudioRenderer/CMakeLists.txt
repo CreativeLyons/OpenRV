@@ -31,11 +31,34 @@ ADD_LIBRARY(
   ${_sources}
 )
 
+# Try to find Multimedia, but make it optional if not available
 FIND_PACKAGE(
   ${RV_QT_PACKAGE_NAME}
-  COMPONENTS Core Multimedia
+  COMPONENTS Core
   REQUIRED
 )
+FIND_PACKAGE(
+  ${RV_QT_PACKAGE_NAME}
+  COMPONENTS Multimedia
+  QUIET
+)
+IF(NOT ${RV_QT_PACKAGE_NAME}Multimedia_FOUND)
+  MESSAGE(WARNING "Qt6Multimedia not found - audio features may be unavailable")
+  SET(QT_MULTIMEDIA_AVAILABLE
+      FALSE
+  )
+ELSE()
+  SET(QT_MULTIMEDIA_AVAILABLE
+      TRUE
+  )
+ENDIF()
+
+IF(QT_MULTIMEDIA_AVAILABLE)
+  TARGET_COMPILE_DEFINITIONS(
+    ${_target}
+    PUBLIC QT_MULTIMEDIA_AVAILABLE
+  )
+ENDIF()
 
 # Note that the audio plugins are opened by the app with dlopen.  We need the includes to compile from some libs to compile, but we don't want to link with them
 # to avoid duplicating symbols when the dlopen occurs
@@ -44,9 +67,17 @@ TARGET_INCLUDE_DIRECTORIES(
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} "$<TARGET_PROPERTY:RvApp,INTERFACE_INCLUDE_DIRECTORIES>"
 )
 
+# Link libraries - conditionally include Multimedia
+SET(_qtaudio_link_libs
+    TwkMath TwkUtil Qt::Core
+)
+IF(QT_MULTIMEDIA_AVAILABLE)
+  LIST(APPEND _qtaudio_link_libs Qt::Multimedia)
+ENDIF()
+
 TARGET_LINK_LIBRARIES(
   ${_target}
-  PUBLIC TwkMath TwkUtil Qt::Core Qt::Multimedia
+  PUBLIC ${_qtaudio_link_libs}
   PRIVATE TwkAudio
 )
 

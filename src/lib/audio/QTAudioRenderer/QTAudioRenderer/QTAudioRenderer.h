@@ -16,10 +16,18 @@
 
 #include <QtCore/QIODevice>
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
 #include <QtMultimedia/QAudioFormat>
 #include <QtMultimedia/QAudioDevice>
 #include <QtMultimedia/QAudioSink>
 #include <QtMultimedia/QMediaDevices>
+#else
+// Forward declarations when Multimedia is not available
+class QAudioFormat;
+class QAudioDevice;
+class QAudioSink;
+class QMediaDevices;
+#endif
 
 #include <QtCore/QThread>
 #include <QtCore/QMutex>
@@ -29,7 +37,14 @@
 namespace IPCore
 {
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     using SampleFormat = QAudioFormat::SampleFormat;
+#else
+    // Stub type when Multimedia is not available
+    enum SampleFormat
+    {
+    };
+#endif
 
     class QTAudioThread;
     class QTAudioRenderer;
@@ -61,12 +76,20 @@ namespace IPCore
         bool m_silence = false;
     };
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
     class QTAudioOutput : public QAudioSink
+#else
+    class QTAudioOutput : public QObject
+#endif
     {
         Q_OBJECT
 
     public:
+#ifdef QT_MULTIMEDIA_AVAILABLE
         QTAudioOutput(QAudioDevice& audioDevice, QAudioFormat& audioFormat, QTAudioIODevice& ioDevice, QTAudioThread& audioThread);
+#else
+        QTAudioOutput(void*, void*, QTAudioIODevice&, QTAudioThread&);
+#endif
         ~QTAudioOutput();
 
         bool isFlushing() const { return m_isFlushing; }
@@ -77,7 +100,43 @@ namespace IPCore
 
         void accumulateFlushedBytes(qint64 n) { m_flushedBytes += n; }
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
         bool flushedEnough() const { return m_flushedBytes >= bufferSize(); }
+#else
+        bool flushedEnough() const { return false; }
+#endif
+
+#ifdef QT_MULTIMEDIA_AVAILABLE
+        // Methods inherited from QAudioSink
+        using QAudioSink::bufferSize;
+        using QAudioSink::processedUSecs;
+        using QAudioSink::reset;
+        using QAudioSink::resume;
+        using QAudioSink::setBufferSize;
+        using QAudioSink::start;
+        using QAudioSink::state;
+        using QAudioSink::stop;
+        using QAudioSink::suspend;
+#else
+        // Stub methods when Multimedia is not available
+        int state() const { return 0; }
+
+        qint64 bufferSize() const { return 0; }
+
+        void setBufferSize(qint64) {}
+
+        void start(QIODevice*) {}
+
+        void stop() {}
+
+        void suspend() {}
+
+        void reset() {}
+
+        void resume() {}
+
+        qint64 processedUSecs() const { return 0; }
+#endif
 
     public slots:
         void startAudio();
@@ -90,11 +149,19 @@ namespace IPCore
 
     private:
         int calcAudioBufferSize(const int channels, const int sampleRate, const int sampleSizeInBytes, const int defaultBufferSize) const;
+#ifdef QT_MULTIMEDIA_AVAILABLE
         std::string toString(QAudio::State state);
 
     private:
         QAudioDevice& m_device;
         QAudioFormat& m_format;
+#else
+        std::string toString(int state);
+
+    private:
+        void* m_device;
+        void* m_format;
+#endif
         QTAudioIODevice& m_ioDevice;
         QTAudioThread& m_thread;
         bool m_isFlushing = false;
@@ -193,6 +260,7 @@ namespace IPCore
 
     class QTAudioRenderer : public IPCore::AudioRenderer
     {
+        friend class QTAudioThread; // Allow QTAudioThread to access private members
     public:
         typedef TwkAudio::AudioBuffer AudioBuffer;
 
@@ -234,6 +302,7 @@ namespace IPCore
         // or 'NoodleApplication'.
         template <class T> static IPCore::AudioRenderer::Module addQTAudioModule();
 
+#ifdef QT_MULTIMEDIA_AVAILABLE
         TwkAudio::Format getTwkAudioFormat() const;
         TwkAudio::Format convertToTwkAudioFormat(SampleFormat fmtType) const;
 
@@ -256,6 +325,25 @@ namespace IPCore
         QAudioFormat m_format;
         QAudioDevice m_device;
         QList<QAudioDevice> m_deviceList;
+#else
+        // Stub implementations when Multimedia is not available
+        TwkAudio::Format getTwkAudioFormat() const;
+        TwkAudio::Format convertToTwkAudioFormat(SampleFormat) const;
+
+        void setSampleSizeAndType(Layout, Format, void*) const {}
+
+        bool supportsRequiredChannels(const void*) const { return false; }
+
+        void init();
+        void initDeviceList();
+
+    private:
+        QObject* m_parent;
+        QTAudioThread* m_thread;
+        void* m_format;
+        void* m_device;
+        QList<void*> m_deviceList;
+#endif
         std::string m_codec;
     };
 

@@ -263,9 +263,18 @@ def build() -> None:
             if key.startswith("Qt6") and key.endswith("_DIR"):
                 del env[key]
         # Remove Homebrew from PATH to prevent finding Homebrew CMake modules
+        # But ensure cmake is still available - find it first, then add its directory
+        import shutil
+
+        cmake_path = shutil.which("cmake")
+        cmake_dir = os.path.dirname(cmake_path) if cmake_path else None
+
         if "PATH" in env:
             paths = env["PATH"].split(os.pathsep)
             filtered_paths = [p for p in paths if p and "/opt/homebrew" not in p]
+            # Add cmake's directory if we found it and it's not already in PATH
+            if cmake_dir and cmake_dir not in filtered_paths:
+                filtered_paths.insert(0, cmake_dir)
             env["PATH"] = os.pathsep.join(filtered_paths)
 
     print(f"Executing {pyside_build_args}")

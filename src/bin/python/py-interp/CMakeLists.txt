@@ -44,6 +44,8 @@ IF(RV_TARGET_DARWIN)
     ${_target}
     PRIVATE DarwinBundle
   )
+  # On macOS, handle missing AGL framework (deprecated, removed in macOS 10.14+) Qt::Gui/Qt::Widgets may pull in Qt::OpenGL which adds -framework AGL
+  TARGET_LINK_OPTIONS(${_target} PRIVATE "-Wl,-undefined,dynamic_lookup")
 ELSE()
   TARGET_LINK_LIBRARIES(
     ${_target}
@@ -52,6 +54,22 @@ ELSE()
 ENDIF()
 
 RV_STAGE(TYPE "EXECUTABLE_WITH_PLUGINS" TARGET ${_target})
+
+# On macOS, ensure dummy AGL framework is available at runtime
+IF(RV_TARGET_DARWIN)
+  SET(_dummy_agl_framework_path
+      "${CMAKE_BINARY_DIR}/frameworks/AGL.framework"
+  )
+  IF(EXISTS "${_dummy_agl_framework_path}")
+    ADD_CUSTOM_COMMAND(
+      TARGET ${_target}
+      POST_BUILD
+      COMMENT "Copying dummy AGL framework to staging area"
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${RV_STAGE_FRAMEWORKS_DIR}
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${_dummy_agl_framework_path} ${RV_STAGE_FRAMEWORKS_DIR}/AGL.framework
+    )
+  ENDIF()
+ENDIF()
 
 ADD_CUSTOM_COMMAND(
   COMMENT "Generating .pyc for ${RV_STAGE_PLUGINS_PYTHON_DIR}"

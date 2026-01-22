@@ -35,6 +35,9 @@ TARGET_LINK_LIBRARIES(
 )
 
 IF(RV_TARGET_DARWIN)
+  # On macOS, handle missing AGL framework (deprecated, removed in macOS 10.14+) TwkGLF links to Qt::OpenGL which adds -framework AGL, but it doesn't exist in
+  # newer macOS SDKs
+  TARGET_LINK_OPTIONS(${_target} PRIVATE "-Wl,-undefined,dynamic_lookup")
   TARGET_LINK_LIBRARIES(
     ${_target}
     PRIVATE "-framework Foundation" "-framework IOKit"

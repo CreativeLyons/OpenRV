@@ -8,11 +8,13 @@
 #include <RvCommon/RvJavaScriptObject.h>
 #include <RvCommon/RvDocument.h>
 #include <TwkQtCoreUtil/QtConvert.h>
+#ifdef QT_WEBENGINEWIDGETS_LIB
 #include <QWebEnginePage>
 #include <QWebEngineProfile>
 #include <QWebEngineScript>
 #include <QWebEngineScriptCollection>
 #include <QWebChannel>
+#endif
 
 namespace Rv
 {
@@ -20,6 +22,7 @@ namespace Rv
     using namespace TwkApp;
     using namespace TwkQtCoreUtil;
 
+#ifdef QT_WEBENGINEWIDGETS_LIB
     RvJavaScriptObject::RvJavaScriptObject(RvDocument* doc, QWebEnginePage* page)
         : QObject(doc)
         , EventNode("jsobject")
@@ -62,6 +65,15 @@ namespace Rv
         m_channel->registerObject(QStringLiteral("rvsession"), this);
         m_frame->setWebChannel(m_channel);
         connect(m_frame, SIGNAL(loadFinished(bool)), this, SLOT(emitReady()));
+#else
+    RvJavaScriptObject::RvJavaScriptObject(RvDocument* doc, void* page)
+        : QObject(doc)
+        , EventNode("jsobject")
+        , m_frame(page)
+        , m_doc(doc)
+    {
+        // Stub implementation when WebEngine is not available
+#endif
 
         listenTo(m_doc->session());
     }
@@ -70,33 +82,49 @@ namespace Rv
 
     void RvJavaScriptObject::emitReady()
     {
+#ifdef QT_WEBENGINEWIDGETS_LIB
         m_frame->runJavaScript("var event = new CustomEvent(\"rvsession-ready\",{}); "
                                "document.dispatchEvent(event);");
+#endif
     }
 
     QString RvJavaScriptObject::evaluate(const QString& code)
     {
+#ifdef QT_WEBENGINEWIDGETS_LIB
         string rval = m_doc->session()->userGenericEvent("remote-eval", UTF8::qconvert(code), UTF8::qconvert(m_frame->url().toString()));
         return UTF8::qconvert(rval.c_str());
+#else
+        return QString();
+#endif
     }
 
     QString RvJavaScriptObject::pyevaluate(const QString& code)
     {
+#ifdef QT_WEBENGINEWIDGETS_LIB
         string rval = m_doc->session()->userGenericEvent("remote-pyeval", UTF8::qconvert(code), UTF8::qconvert(m_frame->url().toString()));
         return UTF8::qconvert(rval.c_str());
+#else
+        return QString();
+#endif
     }
 
     void RvJavaScriptObject::pyexec(const QString& code)
     {
+#ifdef QT_WEBENGINEWIDGETS_LIB
         (void)m_doc->session()->userGenericEvent("remote-pyexec", UTF8::qconvert(code), UTF8::qconvert(m_frame->url().toString()));
+#endif
     }
 
     QString RvJavaScriptObject::sendInternalEvent(const QString& eventName, const QString& contents, const QString& sender)
     {
+#ifdef QT_WEBENGINEWIDGETS_LIB
         QString s = (sender == "") ? m_frame->url().toString() : sender;
 
         string rval = m_doc->session()->userGenericEvent(UTF8::qconvert(eventName), UTF8::qconvert(contents), UTF8::qconvert(s));
         return UTF8::qconvert(rval.c_str());
+#else
+        return QString();
+#endif
     }
 
     void RvJavaScriptObject::bindToRegex(const QString& name)

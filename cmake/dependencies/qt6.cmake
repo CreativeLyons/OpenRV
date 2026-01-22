@@ -67,17 +67,25 @@ IF((_qt_version_from_path VERSION_EQUAL "6.5.3"
 )
   IF(_qt_version_from_path VERSION_EQUAL "6.5.3")
     MESSAGE(
-      FATAL_ERROR
-        "QtWebEngine component for 6.5.3 is required but not found.\n"
-        "Please install QtWebEngine via the Qt Maintenance Tool:\n"
-        "  1. Open Qt Maintenance Tool (usually in ~/Qt/MaintenanceTool)\n"
-        "  2. Select your Qt 6.5.3 installation\n"
-        "  3. Add the 'Qt WebEngine' component\n"
-        "  4. Complete the installation\n"
-        "Alternatively, reinstall Qt 6.5.3 and ensure 'Qt WebEngine' is selected during installation."
+      WARNING "QtWebEngine component for 6.5.3 is required but not found.\n"
+              "Continuing build without QtWebEngine - some features may be unavailable.\n"
+              "To install QtWebEngine:\n"
+              "  1. Open Qt Maintenance Tool (usually in ~/Qt/MaintenanceTool)\n"
+              "  2. Select your Qt 6.5.3 installation\n"
+              "  3. Add the 'Qt WebEngine' component\n"
+              "  4. Complete the installation"
+    )
+    # Skip QtWebEngine download/extraction for 6.5.3 - continue without it
+    SET(_skip_qtwebengine
+        TRUE
+    )
+    SET(RV_SKIP_QT_WEBENGINE
+        TRUE
+        CACHE BOOL "Skip QtWebEngine components"
     )
   ELSEIF(_qt_version_from_path VERSION_EQUAL "6.8.3")
-    MESSAGE(STATUS "QtWebEngine component for 6.8.3 not found. Attempting to download and install it.")
+    MESSAGE(WARNING "QtWebEngine component for 6.8.3 not found. Skipping download for rebuild.")
+    # Skip download for rebuilds - continue without QtWebEngine
     SET(_qt_webengine_version
         "683"
     )
@@ -86,100 +94,139 @@ IF((_qt_version_from_path VERSION_EQUAL "6.5.3"
     )
   ENDIF()
 
-  # Find the 7z executable, which is required for extraction.
-  FIND_PROGRAM(
-    SEVEN_ZIP_EXECUTABLE
-    NAMES 7z p7zip
-  )
-  IF(NOT SEVEN_ZIP_EXECUTABLE)
-    MESSAGE(FATAL_ERROR "p7zip (or 7z) is required to extract the QtWebEngine module but was not found. Please install it (e.g., 'brew install p7zip').")
-  ENDIF()
-
-  IF(RV_TARGET_DARWIN)
-    # Download the 7z archive for Qt 6.8.3 (6.5.3 requires manual installation via Qt Maintenance Tool)
-    IF(_qt_version_from_path VERSION_EQUAL "6.8.3")
-      SET(QT_WEBENGINE_URL
-          "https://download.qt.io/online/qtsdkrepository/mac_x64/extensions/qtwebengine/${_qt_webengine_version}/clang_64/extensions.qtwebengine.${_qt_webengine_version}.clang_64/${_qt_webengine_short}-0-202503201424qtwebengine-MacOS-MacOS_14-Clang-MacOS-MacOS_14-X86_64-ARM64.7z"
-      )
-      SET(QT_WEBENGINE_ARCHIVE
-          "${CMAKE_BINARY_DIR}/qtwebengine-${_qt_webengine_short}-macos.7z"
-      )
-    ENDIF()
-  ELSEIF(RV_TARGET_LINUX)
-    IF(_qt_version_from_path VERSION_EQUAL "6.8.3")
-      SET(QT_WEBENGINE_URL
-          "https://download.qt.io/online/qtsdkrepository/linux_x64/extensions/qtwebengine/${_qt_webengine_version}/x86_64/extensions.qtwebengine.${_qt_webengine_version}.linux_gcc_64/${_qt_webengine_short}-0-202503201424qtwebengine-Linux-RHEL_8_10-GCC-Linux-RHEL_8_10-X86_64.7z"
-      )
-      SET(QT_WEBENGINE_ARCHIVE
-          "${CMAKE_BINARY_DIR}/qtwebengine-${_qt_webengine_short}-linux.7z"
-      )
-    ENDIF()
-  ELSEIF(RV_TARGET_WINDOWS)
-    IF(_qt_version_from_path VERSION_EQUAL "6.8.3")
-      SET(QT_WEBENGINE_URL
-          "https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/${_qt_webengine_version}/msvc2022_64/extensions.qtwebengine.${_qt_webengine_version}.win64_msvc2022_64/${_qt_webengine_short}-0-202503201424qtwebengine-Windows-Windows_11_23H2-MSVC2022-Windows-Windows_11_23H2-X86_64.7z"
-      )
-      SET(QT_WEBENGINE_ARCHIVE
-          "${CMAKE_BINARY_DIR}/qtwebengine-${_qt_webengine_short}-windows.7z"
-      )
-    ENDIF()
-  ELSE()
-    MESSAGE(
-      FATAL_ERROR
-        "Failed to determine platform for downloading QtWebEngine. Modify qt6.cmake to add support for this platform.  Installers can be found at https://download.qt.io/online/qtsdkrepository/ under platform/extensions/qtwebengine/${_qt_webengine_version}/"
+  # Skip QtWebEngine download/extraction if _skip_qtwebengine is set (e.g., for 6.5.3 rebuilds)
+  IF(NOT _skip_qtwebengine)
+    # Find the 7z executable, which is required for extraction.
+    FIND_PROGRAM(
+      SEVEN_ZIP_EXECUTABLE
+      NAMES 7z p7zip
     )
-  ENDIF()
+    IF(NOT SEVEN_ZIP_EXECUTABLE)
+      MESSAGE(FATAL_ERROR "p7zip (or 7z) is required to extract the QtWebEngine module but was not found. Please install it (e.g., 'brew install p7zip').")
+    ENDIF()
 
-  MESSAGE(STATUS "Downloading QtWebEngine from ${QT_WEBENGINE_URL}")
-  FILE(
-    DOWNLOAD ${QT_WEBENGINE_URL} ${QT_WEBENGINE_ARCHIVE}
-    SHOW_PROGRESS
-  )
+    IF(RV_TARGET_DARWIN)
+      # Download the 7z archive for Qt 6.8.3 (6.5.3 requires manual installation via Qt Maintenance Tool)
+      IF(_qt_version_from_path VERSION_EQUAL "6.8.3")
+        SET(QT_WEBENGINE_URL
+            "https://download.qt.io/online/qtsdkrepository/mac_x64/extensions/qtwebengine/${_qt_webengine_version}/clang_64/extensions.qtwebengine.${_qt_webengine_version}.clang_64/${_qt_webengine_short}-0-202503201424qtwebengine-MacOS-MacOS_14-Clang-MacOS-MacOS_14-X86_64-ARM64.7z"
+        )
+        SET(QT_WEBENGINE_ARCHIVE
+            "${CMAKE_BINARY_DIR}/qtwebengine-${_qt_webengine_short}-macos.7z"
+        )
+      ENDIF()
+    ELSEIF(RV_TARGET_LINUX)
+      IF(_qt_version_from_path VERSION_EQUAL "6.8.3")
+        SET(QT_WEBENGINE_URL
+            "https://download.qt.io/online/qtsdkrepository/linux_x64/extensions/qtwebengine/${_qt_webengine_version}/x86_64/extensions.qtwebengine.${_qt_webengine_version}.linux_gcc_64/${_qt_webengine_short}-0-202503201424qtwebengine-Linux-RHEL_8_10-GCC-Linux-RHEL_8_10-X86_64.7z"
+        )
+        SET(QT_WEBENGINE_ARCHIVE
+            "${CMAKE_BINARY_DIR}/qtwebengine-${_qt_webengine_short}-linux.7z"
+        )
+      ENDIF()
+    ELSEIF(RV_TARGET_WINDOWS)
+      IF(_qt_version_from_path VERSION_EQUAL "6.8.3")
+        SET(QT_WEBENGINE_URL
+            "https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtwebengine/${_qt_webengine_version}/msvc2022_64/extensions.qtwebengine.${_qt_webengine_version}.win64_msvc2022_64/${_qt_webengine_short}-0-202503201424qtwebengine-Windows-Windows_11_23H2-MSVC2022-Windows-Windows_11_23H2-X86_64.7z"
+        )
+        SET(QT_WEBENGINE_ARCHIVE
+            "${CMAKE_BINARY_DIR}/qtwebengine-${_qt_webengine_short}-windows.7z"
+        )
+      ENDIF()
+    ELSE()
+      MESSAGE(
+        FATAL_ERROR
+          "Failed to determine platform for downloading QtWebEngine. Modify qt6.cmake to add support for this platform.  Installers can be found at https://download.qt.io/online/qtsdkrepository/ under platform/extensions/qtwebengine/${_qt_webengine_version}/"
+      )
+    ENDIF()
 
-  # Extract the archive into a temporary directory to handle its internal structure safely.
-  SET(QT_WEBENGINE_TEMP_DIR
-      "${CMAKE_BINARY_DIR}/qtwebengine_temp_extract"
-  )
-  IF(EXISTS "${QT_WEBENGINE_TEMP_DIR}")
+    MESSAGE(STATUS "Downloading QtWebEngine from ${QT_WEBENGINE_URL}")
+    FILE(
+      DOWNLOAD ${QT_WEBENGINE_URL} ${QT_WEBENGINE_ARCHIVE}
+      SHOW_PROGRESS
+    )
+
+    # Extract the archive into a temporary directory to handle its internal structure safely.
+    SET(QT_WEBENGINE_TEMP_DIR
+        "${CMAKE_BINARY_DIR}/qtwebengine_temp_extract"
+    )
+    IF(EXISTS "${QT_WEBENGINE_TEMP_DIR}")
+      FILE(REMOVE_RECURSE "${QT_WEBENGINE_TEMP_DIR}")
+    ENDIF()
+    FILE(MAKE_DIRECTORY "${QT_WEBENGINE_TEMP_DIR}")
+
+    MESSAGE(STATUS "Extracting QtWebEngine to temporary directory: ${QT_WEBENGINE_TEMP_DIR}")
+    EXECUTE_PROCESS(
+      COMMAND ${SEVEN_ZIP_EXECUTABLE} x ${QT_WEBENGINE_ARCHIVE} -o${QT_WEBENGINE_TEMP_DIR}
+      RESULT_VARIABLE extract_result
+      OUTPUT_QUIET ERROR_QUIET
+    )
+
+    IF(NOT extract_result EQUAL 0)
+      MESSAGE(FATAL_ERROR "Failed to extract QtWebEngine archive to temp directory. Result: ${extract_result}.")
+    ENDIF()
+
+    # The archive contains Qt component directories (lib, qml, etc.) directly. Copy the entire contents of the temporary directory into the Qt installation,
+    # merging the folders.
+    MESSAGE(STATUS "Copying extracted files from ${QT_WEBENGINE_TEMP_DIR} to ${RV_DEPS_QT_LOCATION}")
+    FILE(
+      COPY "${QT_WEBENGINE_TEMP_DIR}/"
+      DESTINATION "${RV_DEPS_QT_LOCATION}"
+    )
+
+    # Clean up the temporary directory and downloaded archive
     FILE(REMOVE_RECURSE "${QT_WEBENGINE_TEMP_DIR}")
-  ENDIF()
-  FILE(MAKE_DIRECTORY "${QT_WEBENGINE_TEMP_DIR}")
+    FILE(REMOVE "${QT_WEBENGINE_ARCHIVE}")
 
-  MESSAGE(STATUS "Extracting QtWebEngine to temporary directory: ${QT_WEBENGINE_TEMP_DIR}")
-  EXECUTE_PROCESS(
-    COMMAND ${SEVEN_ZIP_EXECUTABLE} x ${QT_WEBENGINE_ARCHIVE} -o${QT_WEBENGINE_TEMP_DIR}
-    RESULT_VARIABLE extract_result
-    OUTPUT_QUIET ERROR_QUIET
-  )
-
-  IF(NOT extract_result EQUAL 0)
-    MESSAGE(FATAL_ERROR "Failed to extract QtWebEngine archive to temp directory. Result: ${extract_result}.")
-  ENDIF()
-
-  # The archive contains Qt component directories (lib, qml, etc.) directly. Copy the entire contents of the temporary directory into the Qt installation,
-  # merging the folders.
-  MESSAGE(STATUS "Copying extracted files from ${QT_WEBENGINE_TEMP_DIR} to ${RV_DEPS_QT_LOCATION}")
-  FILE(
-    COPY "${QT_WEBENGINE_TEMP_DIR}/"
-    DESTINATION "${RV_DEPS_QT_LOCATION}"
-  )
-
-  # Clean up the temporary directory and downloaded archive
-  FILE(REMOVE_RECURSE "${QT_WEBENGINE_TEMP_DIR}")
-  FILE(REMOVE "${QT_WEBENGINE_ARCHIVE}")
-
-  MESSAGE(STATUS "QtWebEngine for ${_qt_webengine_short} installed successfully.")
+    MESSAGE(STATUS "QtWebEngine for ${_qt_webengine_short} installed successfully.")
+  ENDIF() # End of _skip_qtwebengine check
 ENDIF()
 
 # Testing if everything is alright. In Qt6, QtWebEngine has been split into Qt6WebEngineCore and Qt6WebEngineWidgets.
-FIND_PACKAGE(
-  Qt6
-  COMPONENTS Core WebEngineCore WebEngineWidgets
-  REQUIRED
-)
+IF(_skip_qtwebengine)
+  # Skip WebEngine components if QtWebEngine is not available (e.g., for 6.5.3 rebuilds)
+  FIND_PACKAGE(
+    Qt6
+    COMPONENTS Core Tools
+    REQUIRED
+  )
+  MESSAGE(WARNING "Building without QtWebEngine - web view features will be unavailable.")
+ELSE()
+  FIND_PACKAGE(
+    Qt6
+    COMPONENTS Core WebEngineCore WebEngineWidgets
+    REQUIRED
+  )
+ENDIF()
 
-GET_TARGET_PROPERTY(MOC_EXECUTABLE Qt6::moc IMPORTED_LOCATION)
-GET_TARGET_PROPERTY(UIC_EXECUTABLE Qt6::uic IMPORTED_LOCATION)
+# Get MOC and UIC executables - they may be in different locations depending on Qt version
+IF(TARGET Qt6::moc)
+  GET_TARGET_PROPERTY(MOC_EXECUTABLE Qt6::moc IMPORTED_LOCATION)
+ELSE()
+  # Fallback: find moc directly (check bin and libexec)
+  FIND_PROGRAM(
+    MOC_EXECUTABLE moc
+    HINTS "${RV_DEPS_QT_LOCATION}/bin" "${RV_DEPS_QT_LOCATION}/libexec"
+    NO_DEFAULT_PATH
+  )
+ENDIF()
+
+IF(TARGET Qt6::uic)
+  GET_TARGET_PROPERTY(UIC_EXECUTABLE Qt6::uic IMPORTED_LOCATION)
+ELSE()
+  # Fallback: find uic directly (check bin and libexec)
+  FIND_PROGRAM(
+    UIC_EXECUTABLE uic
+    HINTS "${RV_DEPS_QT_LOCATION}/bin" "${RV_DEPS_QT_LOCATION}/libexec"
+    NO_DEFAULT_PATH
+  )
+ENDIF()
+
+IF(NOT MOC_EXECUTABLE
+   OR NOT UIC_EXECUTABLE
+)
+  MESSAGE(FATAL_ERROR "Could not find Qt moc and/or uic executables. MOC: ${MOC_EXECUTABLE}, UIC: ${UIC_EXECUTABLE}")
+ENDIF()
 
 SET(QT_MOC_EXECUTABLE
     "${MOC_EXECUTABLE}"
@@ -188,6 +235,12 @@ SET(QT_MOC_EXECUTABLE
 SET(QT_UIC_EXECUTABLE
     "${UIC_EXECUTABLE}"
     CACHE STRING "Qt UIC executable"
+)
+
+# Set CMAKE_AUTOUIC_EXECUTABLE so CMake's AUTOUIC can find uic
+SET(CMAKE_AUTOUIC_EXECUTABLE
+    "${UIC_EXECUTABLE}"
+    CACHE STRING "CMake AUTOUIC executable"
 )
 
 SET(_qt_copy_message

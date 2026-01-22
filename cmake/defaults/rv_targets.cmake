@@ -56,6 +56,14 @@ IF(APPLE)
       ON
   )
 
+  # Set minimum macOS deployment target to ensure compatibility with older macOS versions This allows the app built on macOS 26.2 to run on macOS 13.0+
+  # (Ventura, Sonoma, Sequoia)
+  SET(CMAKE_OSX_DEPLOYMENT_TARGET
+      "13.0"
+      CACHE STRING "Minimum macOS version (Ventura 13.0+)" FORCE
+  )
+  MESSAGE(STATUS "Setting macOS deployment target to: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+
   # Get macOS version
   SET(_macos_version_string
       ""
