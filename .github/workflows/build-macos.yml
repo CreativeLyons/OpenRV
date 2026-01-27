@@ -20,26 +20,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Discover documented versions in v3.0.0
+      - name: Print base environment
         shell: bash
         run: |
           set -euxo pipefail
-          echo "Architecture: $(uname -m)"
-          echo "macOS:"
+          echo "arch: $(uname -m)"
           sw_vers
-          echo "Searching repo for version pins (Qt / CMake / Ninja / Python)..."
-          grep -RInE "Qt|qt6|CMake|cmake|Ninja|ninja|Python|python@" . || true
+          xcodebuild -version
+          clang --version
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Ensure Homebrew
         shell: bash
         run: |
           set -euxo pipefail
           if ! command -v brew >/dev/null; then
-            echo "Installing Homebrew..."
             /bin/bash -lc "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           fi
 
-          # Load brew environment (arm64 vs intel)
           if [ -x /opt/homebrew/bin/brew ]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
           else
@@ -49,35 +51,19 @@ jobs:
           brew update
           brew --version
 
-      - name: Install pinned toolchain (baseline, link-safe)
+      - name: Install build tools (cmake, ninja) - link-safe
         shell: bash
         run: |
           set -euxo pipefail
 
-          # Install (may already be present on GitHub-hosted runners)
-          brew install cmake ninja python@3.11 || true
-
-          # Fix common link conflicts (especially on intel runners)
-          brew unlink python@3.11 || true
-          brew unlink python@3.12 || true
-          brew unlink python@3.10 || true
-
-          # Force links we actually want
-          brew link --overwrite --force python@3.11
-          brew link --overwrite --force cmake || true
-          brew link --overwrite --force ninja || true
+          brew install cmake ninja
 
           echo "Tool versions:"
           cmake --version
           ninja --version
+
+          echo "Python versions:"
+          which python
+          python --version
+          which python3
           python3 --version
-
-          echo "Brew diagnosis (non-fatal):"
-          brew doctor || true
-
-      - name: Verify Xcode toolchain
-        shell: bash
-        run: |
-          set -euxo pipefail
-          xcodebuild -version
-          clang --version
