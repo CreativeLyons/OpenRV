@@ -17,12 +17,55 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Print environment
+      - name: Discover documented versions in v3.0.0
         shell: bash
         run: |
           set -euxo pipefail
-          echo "arch: $(uname -m)"
+          echo "Architecture: $(uname -m)"
+          echo "macOS:"
           sw_vers
+          echo "Searching repo for version pins (Qt / CMake / Ninja / Python)..."
+          grep -RInE "Qt|qt6|CMake|cmake|Ninja|ninja|Python|python@" . || true
+
+      - name: Ensure Homebrew
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if ! command -v brew >/dev/null; then
+            echo "Installing Homebrew..."
+            /bin/bash -lc "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+
+          # Load brew environment (arm64 vs intel)
+          if [ -x /opt/homebrew/bin/brew ]; then
+            eval "$(/opt/homebrew/bin/brew shellenv)"
+          else
+            eval "$(/usr/local/bin/brew shellenv)"
+          fi
+
+          brew update
+          brew --version
+
+      - name: Install pinned toolchain (baseline)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          brew install \
+            cmake \
+            ninja \
+            python@3.11
+
+          echo "Tool versions:"
+          cmake --version
+          ninja --version
+          python3 --version
+
+      - name: Verify Xcode toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
           xcodebuild -version
+          clang --version
