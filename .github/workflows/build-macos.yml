@@ -49,19 +49,31 @@ jobs:
           brew update
           brew --version
 
-      - name: Install pinned toolchain (baseline)
+      - name: Install pinned toolchain (baseline, link-safe)
         shell: bash
         run: |
           set -euxo pipefail
-          brew install \
-            cmake \
-            ninja \
-            python@3.11
+
+          # Install (may already be present on GitHub-hosted runners)
+          brew install cmake ninja python@3.11 || true
+
+          # Fix common link conflicts (especially on intel runners)
+          brew unlink python@3.11 || true
+          brew unlink python@3.12 || true
+          brew unlink python@3.10 || true
+
+          # Force links we actually want
+          brew link --overwrite --force python@3.11
+          brew link --overwrite --force cmake || true
+          brew link --overwrite --force ninja || true
 
           echo "Tool versions:"
           cmake --version
           ninja --version
           python3 --version
+
+          echo "Brew diagnosis (non-fatal):"
+          brew doctor || true
 
       - name: Verify Xcode toolchain
         shell: bash
