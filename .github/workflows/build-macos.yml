@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  sanity:
+  build:
     strategy:
       fail-fast: false
       matrix:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Print base environment
+      - name: Base environment
         shell: bash
         run: |
           set -euxo pipefail
@@ -41,29 +41,65 @@ jobs:
           if ! command -v brew >/dev/null; then
             /bin/bash -lc "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           fi
-
           if [ -x /opt/homebrew/bin/brew ]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
           else
             eval "$(/usr/local/bin/brew shellenv)"
           fi
-
           brew update
           brew --version
 
-      - name: Install build tools (cmake, ninja) - link-safe
+      - name: Install build tools (cmake, ninja)
+        shell: bash
+        run: |
+          set -euxo pipefail
+          brew install cmake ninja
+          cmake --version
+          ninja --version
+          python --version
+
+      - name: Build OpenRV (repo scripts)
         shell: bash
         run: |
           set -euxo pipefail
 
-          brew install cmake ninja
+          # Try common OpenRV entrypoints; fail with a clear message if none exist.
+          if [ -f "./rvcmds.sh" ]; then
+            echo "Using rvcmds.sh flow"
+            source ./rvcmds.sh
+            rvbootstrap
+            rvmk
+          elif [ -f "./rvbootstrap" ]; then
+            echo "Using ./rvbootstrap + ./rvmk"
+            ./rvbootstrap
+            ./rvmk
+          else
+            echo "ERROR: Could not find OpenRV build entrypoints (rvcmds.sh/rvbootstrap)."
+            echo "List repo root:"
+            ls -la
+            exit 1
+          fi
 
-          echo "Tool versions:"
-          cmake --version
-          ninja --version
+      - name: Package stage (if present)
+        shell: bash
+        run: |
+          set -euxo pipefail
 
-          echo "Python versions:"
-          which python
-          python --version
-          which python3
-          python3 --version
+          mkdir -p artifacts
+
+          if [ -d "_build/stage" ]; then
+            echo "Found _build/stage"
+            tar -czf "artifacts/openrv-macos-${{ matrix.name }}-stage.tar.gz" -C "_build" stage
+          elif [ -d "_build" ]; then
+            echo "No stage folder; archiving _build (fallback)"
+            tar -czf "artifacts/openrv-macos-${{ matrix.name }}-_build.tar.gz" -C "." _build
+          else
+            echo "ERROR: No _build directory produced."
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openrv-macos-${{ matrix.name }}
+          path: artifacts/*
