@@ -4,17 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: arm64
-            runs_on: macos-14
-          - name: x86_64
-            runs_on: macos-15-intel
-
-    runs-on: ${{ matrix.runs_on }}
+  build-arm64:
+    runs-on: macos-14
 
     steps:
       - name: Checkout
@@ -42,11 +33,7 @@ jobs:
           if ! command -v brew >/dev/null; then
             /bin/bash -lc "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           fi
-          if [ -x /opt/homebrew/bin/brew ]; then
-            eval "$(/opt/homebrew/bin/brew shellenv)"
-          else
-            eval "$(/usr/local/bin/brew shellenv)"
-          fi
+          eval "$(/opt/homebrew/bin/brew shellenv)"
           brew update
           brew --version
 
@@ -56,12 +43,10 @@ jobs:
           set -euxo pipefail
           CMAKE_DMG_URL="https://github.com/Kitware/CMake/releases/download/v3.31.7/cmake-3.31.7-macos-universal.dmg"
           curl -L "$CMAKE_DMG_URL" -o /tmp/cmake.dmg
-
           MOUNT_POINT="$(hdiutil attach /tmp/cmake.dmg | awk 'END{print $3}')"
           sudo rm -rf /Applications/CMake.app
           sudo cp -R "$MOUNT_POINT/CMake.app" /Applications/CMake.app
           hdiutil detach "$MOUNT_POINT"
-
           echo "/Applications/CMake.app/Contents/bin" >> "$GITHUB_PATH"
           cmake --version
 
@@ -74,7 +59,6 @@ jobs:
             autoconf automake libtool \
             yasm clang-format black meson nasm pkg-config glew rust
           ninja --version
-          rustc --version || true
 
       - name: Install Qt 6.5.3 (aqtinstall) and set QT_HOME
         shell: bash
@@ -97,22 +81,40 @@ jobs:
             exit 1
           fi
 
-      - name: Build OpenRV (rvbootstrap via rvcmds.sh)
+      - name: Build OpenRV (bootstrap)
         shell: bash
         run: |
           set -euxo pipefail
           zsh -lc '
-            set -eo pipefail   # NOTE: no -u here, rvcmds.sh expects unset vars to be allowed
+            set -eo pipefail
+            setopt aliases   # critical: expand aliases in non-interactive zsh
 
             export QT_HOME="'"$QT_HOME"'"
-            # Fix for setuptools env var referenced by rvcmds.sh
             export SETUPTOOLS_USE_DISTUTILS="${SETUPTOOLS_USE_DISTUTILS:-stdlib}"
 
-            echo "Using QT_HOME=$QT_HOME"
-            echo "SETUPTOOLS_USE_DISTUTILS=$SETUPTOOLS_USE_DISTUTILS"
-
+            echo "QT_HOME=$QT_HOME"
             source ./rvcmds.sh
-            rvbootstrap
+
+            echo "Trying rvbootstrap via alias..."
+            if whence -w rvbootstrap >/dev/null 2>&1; then
+              rvbootstrap
+              exit $?
+            fi
+
+            echo "rvbootstrap alias not available; searching repo for bootstrap script..."
+            BOOTSTRAP=$(find . -maxdepth 4 -type f \( -name "rvbootstrap" -o -name "rvbootstrap.sh" -o -name "rvbootstrap.py" \) | head -n 1 || true)
+            if [ -z "$BOOTSTRAP" ]; then
+              echo "ERROR: could not find any rvbootstrap* script."
+              echo "Repo root contents:"
+              ls -la
+              exit 1
+            fi
+
+            echo "Found: $BOOTSTRAP"
+            case "$BOOTSTRAP" in
+              *.py) python "$BOOTSTRAP" ;;
+              *)    bash "$BOOTSTRAP" ;;
+            esac
           '
 
       - name: Verify output exists
@@ -127,10 +129,10 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p artifacts
-          ditto -c -k --sequesterRsrc --keepParent "_build/stage/app/RV.app" "artifacts/RV-${{ matrix.name }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "_build/stage/app/RV.app" "artifacts/RV-arm64.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: openrv-macos-${{ matrix.name }}
-          path: artifacts/RV-${{ matrix.name }}.zip
+          name: openrv-macos-arm64
+          path: artifacts/RV-arm64.zip
