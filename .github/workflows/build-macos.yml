@@ -26,6 +26,7 @@ jobs:
           set -euxo pipefail
           echo "arch: $(uname -m)"
           sw_vers
+          echo "zsh: $(zsh --version)"
           xcodebuild -version
           clang --version
 
@@ -58,24 +59,32 @@ jobs:
           ninja --version
           python --version
 
-      - name: Build OpenRV (repo scripts)
-        shell: bash
+      - name: Build OpenRV (zsh + repo scripts)
+        shell: zsh
         run: |
-          set -euxo pipefail
+          set -euo pipefail
 
-          # Try common OpenRV entrypoints; fail with a clear message if none exist.
+          # rvcmds.sh is zsh-oriented; run it in zsh so ZSH_EVAL_CONTEXT exists
           if [ -f "./rvcmds.sh" ]; then
-            echo "Using rvcmds.sh flow"
+            echo "Initializing env with rvcmds.sh (zsh)"
             source ./rvcmds.sh
-            rvbootstrap
-            rvmk
-          elif [ -f "./rvbootstrap" ]; then
-            echo "Using ./rvbootstrap + ./rvmk"
+          fi
+
+          # Then run build entrypoints (do not rely on aliases)
+          if [ -x "./rvbootstrap" ] || [ -f "./rvbootstrap" ]; then
+            echo "Running ./rvbootstrap"
             ./rvbootstrap
+          else
+            echo "ERROR: rvbootstrap not found at repo root."
+            ls -la
+            exit 1
+          fi
+
+          if [ -x "./rvmk" ] || [ -f "./rvmk" ]; then
+            echo "Running ./rvmk"
             ./rvmk
           else
-            echo "ERROR: Could not find OpenRV build entrypoints (rvcmds.sh/rvbootstrap)."
-            echo "List repo root:"
+            echo "ERROR: rvmk not found at repo root."
             ls -la
             exit 1
           fi
@@ -84,14 +93,11 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-
           mkdir -p artifacts
 
           if [ -d "_build/stage" ]; then
-            echo "Found _build/stage"
             tar -czf "artifacts/openrv-macos-${{ matrix.name }}-stage.tar.gz" -C "_build" stage
           elif [ -d "_build" ]; then
-            echo "No stage folder; archiving _build (fallback)"
             tar -czf "artifacts/openrv-macos-${{ matrix.name }}-_build.tar.gz" -C "." _build
           else
             echo "ERROR: No _build directory produced."
