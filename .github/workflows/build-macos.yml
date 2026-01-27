@@ -59,35 +59,38 @@ jobs:
           ninja --version
           python --version
 
-      - name: Build OpenRV (zsh + repo scripts)
-        shell: zsh
+      - name: Build OpenRV (run zsh init then scripts)
+        shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
 
-          # rvcmds.sh is zsh-oriented; run it in zsh so ZSH_EVAL_CONTEXT exists
-          if [ -f "./rvcmds.sh" ]; then
-            echo "Initializing env with rvcmds.sh (zsh)"
-            source ./rvcmds.sh
-          fi
+          # Run the zsh-oriented env init + build in one zsh login shell
+          zsh -lc '
+            set -euo pipefail
 
-          # Then run build entrypoints (do not rely on aliases)
-          if [ -x "./rvbootstrap" ] || [ -f "./rvbootstrap" ]; then
-            echo "Running ./rvbootstrap"
-            ./rvbootstrap
-          else
-            echo "ERROR: rvbootstrap not found at repo root."
-            ls -la
-            exit 1
-          fi
+            if [ -f "./rvcmds.sh" ]; then
+              echo "Initializing env with rvcmds.sh (zsh)"
+              source ./rvcmds.sh
+            fi
 
-          if [ -x "./rvmk" ] || [ -f "./rvmk" ]; then
-            echo "Running ./rvmk"
-            ./rvmk
-          else
-            echo "ERROR: rvmk not found at repo root."
-            ls -la
-            exit 1
-          fi
+            if [ -x "./rvbootstrap" ] || [ -f "./rvbootstrap" ]; then
+              echo "Running ./rvbootstrap"
+              ./rvbootstrap
+            else
+              echo "ERROR: rvbootstrap not found at repo root."
+              ls -la
+              exit 1
+            fi
+
+            if [ -x "./rvmk" ] || [ -f "./rvmk" ]; then
+              echo "Running ./rvmk"
+              ./rvmk
+            else
+              echo "ERROR: rvmk not found at repo root."
+              ls -la
+              exit 1
+            fi
+          '
 
       - name: Package stage (if present)
         shell: bash
